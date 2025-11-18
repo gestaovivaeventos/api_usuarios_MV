@@ -48,7 +48,6 @@ def obter_dados(limit: int = 5000, offset: int = 0):
                 SELECT
                     u.id,
                     CASE
-                        WHEN uni.id = 13 THEN 'Volta Redonda'
                         WHEN uni.id = 31 THEN 'Itaperuna Muriae'
                         ELSE uni.nm_unidade
                     END AS nm_unidade,
