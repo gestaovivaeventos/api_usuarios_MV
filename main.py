@@ -56,102 +56,54 @@ def obter_dados(limit: int = 5000, offset: int = 0): # Adiciona parâmetros de p
         with conn.cursor() as cursor:
             # Adicionamos LIMIT e OFFSET à sua query original
             query = """
-                SELECT
+               SELECT
+	u.id,
 	CASE
-		WHEN u.nm_unidade = 'Campos' THEN 'Itaperuna Muriae'
-        WHEN u.id = 13 then 'Volta Redonda'
-		ELSE u.nm_unidade
+		WHEN uni.id = 13 THEN 'Volta Redonda'
+		WHEN uni.id = 31 THEN 'Itaperuna Muriae'
+		ELSE uni.nm_unidade
 	END AS nm_unidade,
-	i.id AS codigo_integrante,
-	i.nm_integrante,
 	CASE
-		WHEN f.is_fundo_assessoria_pura_convertido IS TRUE THEN f.dt_conversao_ass_pura
-		WHEN f.is_fundo_assessoria_pura_convertido IS FALSE THEN i.dt_cadastro
-	END AS dt_cadastro_integrante,
-	f.id AS id_fundo,
-	f.nm_fundo AS nm_fundo,
-	c.nm_curso AS curso_fundo,
-	CASE
-		WHEN f.tp_servico = '1' THEN 'Pacote'
-		WHEN f.tp_servico = '2' THEN 'Assessoria'
-		WHEN f.tp_servico = '3' THEN 'Super Integrada'
-	END AS tp_servico,
-	CASE
-		WHEN (
-			f.dt_contrato IS NULL
-			OR f.dt_contrato > f.dt_cadastro
-		) THEN f.dt_cadastro
-		WHEN f.dt_contrato IS NOT NULL THEN f.dt_contrato
-	END AS dt_contrato,
-	f.dt_cadastro AS dt_cadastro_fundo,
-	'' AS total_lancamentos,
-	fc.vl_plano AS vl_plano,
-	'' AS cadastrado_por,
-	CASE
-		WHEN us.cpf IS NULL THEN us.nome
-		ELSE NULL
-	END AS indicado_por,
-	CASE
-		WHEN us.fl_consultor_comercial IS TRUE THEN 'Sim'
-		WHEN us.fl_consultor_comercial IS FALSE THEN 'Não'
-	END AS consultor_comercial,
-	it.nm_instituicao,
-	i.fl_ativo AS fl_ativo,
-	CASE
-		WHEN f.tipocliente_id = 15 THEN 'Fundo de formatura'
-		WHEN f.tipocliente_id = 17 THEN 'Pre evento'
-	END AS tipo_cliente,
-CASE
-		WHEN us.fl_consultor_comercial IS NOT TRUE AND (
-			( -- Data 2 (dt_cadastro_integrante)
-				CASE
-					WHEN f.is_fundo_assessoria_pura_convertido IS TRUE THEN f.dt_conversao_ass_pura
-					ELSE i.dt_cadastro
-				END
-			)::date
-			- 
-			( -- Data 1 (dt_contrato)
-				CASE
-					WHEN (f.dt_contrato IS NULL OR f.dt_contrato > f.dt_cadastro) THEN f.dt_cadastro
-					WHEN f.dt_contrato IS NOT NULL THEN f.dt_contrato
-				END
-			)::date 
-		) > 60 THEN 'PÓS VENDA'
-		ELSE 'VENDA'
-	END AS venda_posvenda
+		WHEN uni_main.id = 13 THEN 'Volta Redonda'
+		WHEN uni_main.id = 31 THEN 'Itaperuna Muriae'
+		ELSE uni_main.nm_unidade
+	END AS nm_unidade_principal_desc,
+	u.nome,
+	u.username,
+	u.enabled,
+	uni.id AS id_unidade,
+	uv.prioritaria AS unidade_principal,
+	gr.name AS "nm_grupo/cargo",
+	u.datacriacao AS dt_criacao,
+	u.last_login AS ultimo_acesso
 FROM
-	tb_fundo f
-	JOIN tb_unidade u ON f.unidade_id = u.id
-	JOIN tb_integrante i ON i.fundo_id = f.id
-	LEFT JOIN tb_fundo_cota fc ON fc.cota_id = i.cota_id
-	AND i.fundo_id = fc.fundo_id
-	JOIN tb_curso c ON c.id = f.curso_id
-	LEFT JOIN tb_usuario us ON us.id = i.id_usuario_indicacao
-	LEFT JOIN tb_instituicao it ON f.instituicao_id = it.id
+	tb_usuario u
+	LEFT JOIN tb_unidade_vinculada uv ON uv.id_usuario = u.id
+	LEFT JOIN tb_unidade uni ON uni.id = uv.id_unidade
+	LEFT JOIN tb_grupo gr ON gr.id = uv.id_grupo
+	JOIN tb_grupo_permissao per ON per.id_grupo = gr.id
+	LEFT JOIN tb_setor s ON s.id = gr.id_setor
+	LEFT JOIN tb_unidade_vinculada uv_main ON uv_main.id_usuario = u.id
+	AND uv_main.prioritaria IS TRUE
+	LEFT JOIN tb_unidade uni_main ON uni_main.id = uv_main.id_unidade
 WHERE
-	u.categoria = '2'
-	AND f.tipocliente_id IN (15, 17)
-	AND i.dt_cadastro >= '2019-01-01'
-	AND f.is_fundo_teste IS FALSE
-	AND i.nu_status NOT IN (11, 9, 8, 13, 14)
-	AND f.is_assessoria_pura IS FALSE
-	AND (
-		i.dt_cadastro <= '2024-03-08'
-		OR (
-			i.dt_cadastro > '2024-03-08'
-			AND i.id NOT IN (
-				SELECT
-					i2.id
-				FROM
-					tb_integrante i2
-				WHERE
-					i2.forma_adesao = 6
-					AND i2.dt_cadastro > '2024-03-08'
-			)
-		)
-	)
+	gr.name NOT LIKE '%Integrantes%'
+	AND gr.name NOT LIKE '%Comissão%'
+	AND u.cpf IS NULL
+	AND uni.id NOT IN (8,7,43,49,69,75,50,79,51,61,73,47,48,37)
+	AND uni.fl_ativa
+GROUP BY
+	u.username,
+	uni.nm_unidade,
+	u.id,
+	uni.id,
+	s.setor,
+	gr.name,
+	uv.prioritaria,
+	uni_main.id,
+	uni_main.nm_unidade
 ORDER BY
-	i.dt_cadastro
+	dt_criacao
                 LIMIT %s OFFSET %s
             """
             cursor.execute(query, (limit, offset)) # Passa os valores de forma segura
