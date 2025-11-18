@@ -52,7 +52,6 @@ def obter_dados(limit: int = 5000, offset: int = 0):
                         ELSE uni.nm_unidade
                     END AS nm_unidade,
                     CASE
-                        WHEN uni_main.id = 13 THEN 'Volta Redonda'
                         WHEN uni_main.id = 31 THEN 'Itaperuna Muriae'
                         ELSE uni_main.nm_unidade
                     END AS nm_unidade_principal_desc,
