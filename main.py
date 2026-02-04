@@ -91,7 +91,7 @@ def obter_dados(limit: int = 5000, offset: int = 0):
                     uni_main.id,
                     uni_main.nm_unidade
                 ORDER BY
-                    dt_criacao
+                    u.id
                 LIMIT %s OFFSET %s
             """
             cursor.execute(query, (limit, offset))
