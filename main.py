@@ -62,7 +62,7 @@ def obter_dados(limit: int = 5000, offset: int = 0):
                     uv.prioritaria AS unidade_principal,
                     gr.name AS "nm_grupo/cargo",
                     u.datacriacao AS dt_criacao,
-                    u.last_login AS ultimo_acesso
+                    s.setor AS setor
                 FROM
                     tb_usuario u
                     LEFT JOIN tb_unidade_vinculada uv ON uv.id_usuario = u.id
